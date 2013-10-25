@@ -1,0 +1,116 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html>
+	<head>
+		<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+		<title>12. 드래그 앤드 드롭 - 클래스로 구현하기</title>
+		<script type="text/javascript" src="jindo.all.js"></script>
+		<style type="text/css">
+			.drag {
+				border: solid 1px;
+				background-color: #ffffff;
+				width: 60px;
+				height: 60px;
+				-webkit-user-select: none;
+				-moz-user-select: none;
+				z-index: 1;
+			}
+			.drop {
+				border: solid 1px red;
+				width: 120px;
+				height: 120px;
+				background-color: #ffffff;
+				position: absolute;
+				top: 50px;
+				left: 400px;
+				-webkit-user-select: none;
+				-moz-user-select: none;
+			}
+		</style>
+	</head>
+	<body>
+		<div id="drag" class="drag" draggable="true">
+			drag
+		</div>
+		<div id="drop" class="drop">
+			drop here
+		</div>
+		<script type="text/javascript">
+			var DragDrop = $Class({
+				$init : function(sDragId, sDropId) {
+					this.elDrag = $(sDragId);
+					this.elDrop = $(sDropId);
+
+					// 요소 내에서의 위치 값 객체
+					this.diff = {
+						X : 0,
+						Y : 0
+					};
+
+					this._attachEvent();
+				},
+				_attachEvent : function() {
+					// dragstart 이벤트 핸들러
+					$Fn(function(oEvent) {
+					var el = oEvent.element;
+
+					// 드래그 요소의 id를 저장한다.
+					oEvent.$value().dataTransfer.setData('Text', el.id);
+
+					// 이벤트가 발생한 곳의 위치
+					var oDownPosition = oEvent.pos();
+
+					// 드래그될 요소의 위치
+					var oOffset = $Element(el).offset();
+
+					// 이벤트 발생위치 값에서 드래그 요소의 위치 값을 각각 제하고
+					// 요소 내에서 버튼이 눌린 곳의 위치 값을 기억한다.
+					this.diff.Y = oDownPosition.pageY - oOffset.top;
+					this.diff.X = oDownPosition.pageX - oOffset.left;
+
+					}, this).attach(this.elDrag, "dragstart");
+
+					// drop 이벤트 핸들러
+					$Fn(function(oEvent) {
+					var el = oEvent.element;
+
+					// 드래그가 시작할 때 저장했던 요소의 ID를 가져온다.
+					var sId = oEvent.$value().dataTransfer.getData('Text');
+
+					// 이벤트가 발생한 곳의 위치를 구한다.
+					var oPosition = oEvent.pos();
+
+					// 이벤트가 발생한 곳의 좌표값(X,Y)을 통해 드래그 요소의 X, Y 좌표값을 변경한다.
+					$Element(this.elDrag).css({
+					position : "absolute",
+					top : (oPosition.pageY - this.diff.Y) + "px",
+					left : (oPosition.pageX - this.diff.X) + "px"
+					});
+
+					if(el == this.elDrop) {
+					alert("드롭됨!");
+					}
+
+					// 이벤트의 버블링과 기본 동작을 중단한다.
+					oEvent.stop();
+					}, this).attach(this.elDrop, "drop").attach(document, "drop");
+
+					// dragenter와 dragleave 이벤트 핸들러
+					$Fn(function(oEvent) {
+					$Element(this.elDrop).css("backgroundColor", oEvent.type == "dragenter" ? "red" : "white");
+
+					oEvent.stopDefault();
+					}, this).attach(this.elDrop, "dragenter").attach(this.elDrop, "dragleave");
+
+					// dragover 이벤트 핸들러
+					$Fn(function(oEvent) {
+					oEvent.stopDefault();
+					}, this).attach(this.elDrop, "dragover").attach(document, "dragover");
+				}
+			});
+
+			// 드래그 요소의 id와 드롭 요소의 id를 각각 파라미터로 전달한다.
+			var dragdrop = new DragDrop("drag", "drop");
+
+		</script>
+	</body>
+</html>

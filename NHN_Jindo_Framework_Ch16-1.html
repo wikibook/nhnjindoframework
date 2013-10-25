@@ -1,0 +1,228 @@
+﻿<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html>
+	<head>
+		<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+		<title>16. 실시간 급상승 검색어의 롤링 UI - 동작 구현</title>
+		<script type="text/javascript" src="jindo.all.js"></script>
+		<style type="text/css">
+			.list {
+				float: left;
+				border: solid 1px;
+				width: 130px;
+				height: 20px;
+				overflow: hidden;
+			}
+			.list ol {
+				margin: 0;
+				padding-left: 20px;
+				font-size: 17px;
+				list-style: none;
+			}
+			.list ol li {
+				height: 20px;
+				line-height: 1.2em;
+				font-family: "돋움", Dotum, Helvetica, AppleGothic, Sans-serif;
+			}
+			/* 전체 목록이 나타날 때 적용할 클래스 */
+			.list.pop {
+				background-color: #ffffff;
+				overflow: visible;
+				height: auto;
+			}
+			/* 전체 목록이 나타날 때 제일 마지막에 추가된 1위 항목이 보이지 않게 처리한다. */
+			.list.pop li.last {
+				display: none;
+			}
+			/* 표시되고 있던 항목이 강조되록 처리한다. */
+			.bold {
+				font-weight: bold;
+				color: red;
+			}
+		</style>
+	</head>
+	<body>
+		<div id="list" class="list">
+			<ol>
+				<li>1. 가나다</li>
+				<li>2. 라마바</li>
+				<li>3. 사아자</li>
+				<li>4. 차카타</li>
+				<li>5. ABC</li>
+				<li>6. DEF</li>
+				<li>7. GHI</li>
+				<li>8. JKL</li>
+				<li>9. MNO</li>
+				<li>10. PQR</li>
+				<li class="last">1. 가나다</li>
+			</ol>
+		</div>
+		<script type="text/javascript">
+			// 항목을 표시할 영역 가져오기
+			var element = $("list");
+
+			// 항목의 높이
+			var rollingHeight = 20;
+
+			// 목록의 전체 높이 값을 얻는다. 이 값을 사용해 마지막 항목이 표시됐는지 판단한다.
+			var listHeight = $Element($$.getSingle("ol", element)).height();
+
+			// 현재 스크롤 위치 값을 저장한다.
+			var scrollTop = 0;
+
+			function rolling() {
+				// setInterval 함수를 사용해 1초마다 반복해서 실행되게 한다.
+				setInterval(function() {
+					// 현재 스크롤 위치에 항목 높이를 더해 다음 항목을 표시하도록 스크롤 값을 변경한다.
+					scrollTop += rollingHeight;
+
+					// 변경한 스크롤 값이 목록 전체의 높이 값과 같다면 마지막 항목이 표시되고 있다는
+					// 의미이므로, 다시 처음 항목을 표시하도록 스크롤 값을 0으로 설정한다.
+					if(scrollTop == listHeight) {
+						scrollTop = 0;
+					}
+
+					// 계산한 scrollTop 값을 목록의 scrollTop 속성에 설정해 표시될 항목을 변경한다.
+					element.scrollTop = scrollTop;
+				}, 1000);
+			}
+
+			// 함수 실행
+			//rolling();
+
+			// 다음 항목으로 변경될 때 움직일 단위를 설정한다.
+			// 이 예제에서는 한 항목을 변경하는데 10번의 이동이 필요하도록 설정한다.
+			var step = rollingHeight / 10;
+
+			// 롤링 속도를 설정한다.
+			var speed = 30;
+
+			// 표시할 항목을 변경하는 데 사용할 변수
+			var interval;
+
+			// 항목 변경에 사용되는 타임아웃 변수
+			var timeout;
+
+			// 마우스 포인터가 전체 목록 영역의 위에 있는지 확인하는 변수
+			var bMouseover = false;
+
+			// 선택된 노출 항목을 지정하는 변수
+			var element_selected;
+
+			// 마지막으로 선택됐던 항목의 scrollTop 속성값을 저장하는 변수
+			var lastScrollTop;
+
+			function rolling2() {
+				interval = setInterval(function() {
+					scrollTop += step;
+
+					// 계산한 scrollTop 값을 노출 목록 scrollTop 속성에 설정해 노출될 부분을 변경한다.
+					element.scrollTop = scrollTop;
+
+					// 항목이 완전히 변경되어, 다른 항목이 노출되었다면 애니메이션을 중단하고,
+					// 1초간 해당 항목을 노출했다가 다시 항목 변경을 시작한다.
+					if(element.scrollTop % rollingHeight == 0) {
+						clearInterval(interval);
+
+						if(!bMouseover) {
+							timeout = setTimeout(rolling2, 1000);
+						}
+
+						// 스크롤 위치 값이 마지막 항목의 값과 같다면, 첫 번째 항목으로 이동시킨다.
+						if(scrollTop == listHeight - rollingHeight) {
+							scrollTop = 0;
+							element.scrollTop = scrollTop;
+						}
+					}
+				}, speed);
+			}
+
+			// 함수 실행
+			rolling2();
+
+			// 목록 전체를 표시하기 위해 mouseover/mouseout 이벤트 핸들러를 작성한다.
+			$Fn(function(event){
+			var el = event.element;
+			var relatedElement = event.relatedElement;
+
+			// 발생한 이벤트가 내부 요소에서 발생한 이벤트가 아닐 경우에만 레이어 표시/숨김을 실행한다.
+			if(!$Element(element).isParentOf(relatedElement)) {
+			if(event.type == "mouseover") {
+			bMouseover = true;
+
+			// 전체 목록 표시는 순간적으로 마우스 커서가 이동할 때에도 실행될 수 있으므로,
+			// 이를 방지하고자 약간의 시차를 두어 함수를 호출하게 한다.
+			setTimeout(showlist, 300); //  showlist() 함수는 아직 작성하지 않았다.
+			} else if (event.type == "mouseout") {
+			bMouseover = false;
+			hidelist(); //  hidelist() 함수는 아직 작성하지 않았다.
+			}
+			}
+			}).attach(element, "mouseover").attach(element, "mouseout");
+
+			// 전체 목록을 표시한다.
+			function showlist() {
+				// 현재 롤링 UI에 마우스 포인터가 진입된 상태이고,
+				// 전체 목록이 표시되지 않은 상태일 때 레이어를 보인다.
+				// 레이어 요소가 클래스의 속성으로 pop 클래스를 적용하고 있는지 확인한다.
+				if(bMouseover && !$Element(element).hasClass("pop")) {
+					// 마우스 오버 시점에 순위가 변경 중인 상태에 있을 수 있으므로 이 경우 순위가 변경된
+					// 이후의 scrollTop 값과는 다르다. 따라서 이를 보정하고자 해당 항목이 애니메이션이
+					// 끝난 이후의 scrollTop 값으로 설정되도록 처리한다.
+					var difference = scrollTop % rollingHeight;
+
+					// 순위 변경을 중지한다.
+					clearTimeout(timeout);
+
+					// difference 값이 0 아닌 경우 애니메이션 도중 이벤트가 발생한 경우이다.
+					// 이 경우 애니메이션이 발생한 스크롤 차이(difference)만큼 위치 값을 조정해야 한다.
+					if(difference !== 0) {
+						// 애니메이션이 끝난 이후의 scrollTop 값으로 설정되도록 값을 더한다.
+						scrollTop += rollingHeight - difference;
+
+						// 마지막 항목에서 mouseover 이벤트가 발생했다면,
+						// 다시 초기 항목이 노출되도록 scrollTop 값을 0으로 설정한다.
+						if(scrollTop == listHeight - rollingHeight) {
+							element.scrollTop = scrollTop = 0;
+						} else {
+							element.scrollTop = scrollTop;
+						}
+					}
+
+					//마우스 포인터가 롤링 UI에 진입할 때 저장해둔 항목을
+					// 마우스 포인터가 전체 목록 영역에서 나올 때 표시한다.
+					// 이를 위해 해당 항목의 스크롤 값을 저장한다.
+					lastScrollTop = scrollTop;
+
+					// 전체 목록이 표시될 수 있게 레이어로 표시될 요소에 pop 클래스를 적용한다.
+					$Element(element).addClass("pop");
+
+					// 마우스 포인터가 롤링 UI에 진입한 시점에 표시된 <li> 요소를 얻는다.
+					element_selected = $$("ol > li", element)[scrollTop / rollingHeight];
+
+					// 항목이 강조되어 표시되도록 해당 <li> 요소에 bold 클래스를 적용한다.
+					$Element(element_selected).addClass("bold");
+				}
+			}
+
+			// 전체 목록 레이어를 숨긴다.
+			function hidelist() {
+				// 현재 마우스 포인터가 롤링 UI에 진입하지 않은 상태이고
+				// 전체 목록이 노출되고 있는 상태일 때 레이어를 숨긴다.
+				// 레이어 요소가 클래스의 속성으로 pop 클래스를 적용하고 있는지 확인한다.
+
+				if(!bMouseover && $Element(element).hasClass("pop")) {
+					// 전체 목록을 표시하는 레이어 요소에서 pop과 bold 클래스를 제거한다.
+					$Element(element).removeClass("pop");
+					$Element(element_selected).removeClass("bold");
+
+					// 전체 목록에서 다시 롤링 UI로 전환할 때 scrollTop 값을 설정한다.
+					// 다시 rolling2 함수를 호출해 롤링 UI를 실행한다.
+					setTimeout(function() {
+						element.scrollTop = lastScrollTop;
+						timeout = setTimeout(rolling2, 1000);
+					}, 30);
+				}
+			}
+		</script>
+	</body>
+</html>

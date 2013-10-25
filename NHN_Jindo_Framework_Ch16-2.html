@@ -1,0 +1,171 @@
+﻿<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html>
+	<head>
+		<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+		<title>16. 실시간 급상승 검색어의 롤링 UI - 재사용 가능한 클래스 객체로 만들기</title>
+		<script type="text/javascript" src="jindo.all.js"></script>
+		<style type="text/css">
+			.list {
+				float: left;
+				border: solid 1px;
+				width: 130px;
+				height: 20px;
+				overflow: hidden;
+			}
+			.list ol {
+				margin: 0;
+				padding-left: 20px;
+				font-size: 17px;
+				list-style: none;
+			}
+			.list ol li {
+				height: 20px;
+				line-height: 1.2em;
+				font-family: "돋움", Dotum, Helvetica, AppleGothic, Sans-serif;
+			}
+			/* 전체 목록이 나타날 때 적용할 클래스 */
+			.list.pop {
+				background-color: #ffffff;
+				overflow: visible;
+				height: auto;
+			}
+			/* 전체 목록이 나타날 때 제일 마지막에 추가된 1위 항목이 보이지 않게 처리한다. */
+			.list.pop li.last {
+				display: none;
+			}
+			/* 표시되고 있던 항목이 강조되록 처리한다. */
+			.bold {
+				font-weight: bold;
+				color: red;
+			}
+		</style>
+	</head>
+	<body>
+		<div id="list" class="list">
+			<ol>
+				<li>1. 가나다</li>
+				<li>2. 라마바</li>
+				<li>3. 사아자</li>
+				<li>4. 차카타</li>
+				<li>5. ABC</li>
+				<li>6. DEF</li>
+				<li>7. GHI</li>
+				<li>8. JKL</li>
+				<li>9. MNO</li>
+				<li>10. PQR</li>
+				<li class="last">1. 가나다</li>
+			</ol>
+		</div>
+		<div id="list2" class="list">
+		    <ol>
+		        <li>1. AAA</li>
+		        <li>2. BBB</li>
+		        <li>3. CCC</li>
+		        <li>4. DDD</li>
+		        <li>5. EEE</li>
+		        <li>6. FFF</li>
+		        <li>7. GGG</li>
+		        <li>8. HHH</li>
+		        <li>9. III</li>
+		        <li>10. JJJ</li>
+		        <li class="last">1. AAA</li>
+		    </ol>
+		</div>
+		<script type="text/javascript">
+			var Rolling = $Class({
+				// 생성자 (constructor)
+				$init : function(element_id) {
+					this.element = $(element_id);
+					this.rollingHeight = 20;
+					this.listHeight = $Element($$.getSingle("ol", this.element)).height();
+					this.scrollTop = 0;
+					this.step = this.rollingHeight / 10;
+					this.speed = 30;
+					this.interval;
+					this.timeout;
+					this.bMouseover = false;
+					this.element_selected;
+					this.lastScrollTop;
+
+					// 전체 순위 목록을 표시하고자 mouseover/mouseout 이벤트 핸들러를 설정한다.
+					$Fn(this.handler, this).attach(this.element, "mouseover").attach(this.element, "mouseout");
+				},
+				// 항목 변경을 시작한다.
+				start : function() {
+					this.interval = setInterval($Fn(function() {
+					this.scrollTop += this.step;
+					this.element.scrollTop = this.scrollTop;
+
+					if(this.element.scrollTop % this.rollingHeight == 0) {
+					clearInterval(this.interval);
+
+					if(!this.bMouseover) {
+					this.timeout = setTimeout($Fn(this.start, this).bind(), 1000);
+					}
+
+					if(this.scrollTop == this.listHeight - this.rollingHeight) {
+					this.element.scrollTop = this.scrollTop = 0;
+					}
+					}
+					}, this).bind(), this.speed);
+				},
+				// 마우스 오버/아웃 이벤트 핸들러
+				handler : function(event) {
+					var el = event.element, relatedElement = event.relatedElement;
+
+					if(!$Element(this.element).isParentOf(relatedElement)) {
+						if(event.type == "mouseover") {
+							this.bMouseover = true;
+							setTimeout($Fn(this.showlist, this).bind(), 300);
+						} else if(event.type == "mouseout") {
+							this.bMouseover = false;
+							this.hidelist();
+						}
+					}
+				},
+				// 전체 목록 레이어를 표시한다.
+				showlist : function() {
+					if(this.bMouseover && !$Element(this.element).hasClass("pop")) {
+						var difference = this.scrollTop % this.rollingHeight;
+
+						clearTimeout(this.timeout);
+
+						if(difference !== 0) {
+							this.scrollTop += this.rollingHeight - difference;
+
+							if(this.scrollTop == this.listHeight - this.rollingHeight) {
+								this.element.scrollTop = this.scrollTop = 0;
+							} else {
+								this.element.scrollTop = this.scrollTop;
+							}
+						}
+
+						this.lastScrollTop = this.scrollTop;
+						$Element(this.element).addClass("pop");
+						this.element_selected = $$("ol > li", this.element)[this.scrollTop / this.rollingHeight];
+						$Element(this.element_selected).addClass("bold");
+					}
+				},
+				// 전체 목록 레이어를 숨긴다.
+				hidelist : function() {
+					if(!this.bMouseover && $Element(this.element).hasClass("pop")) {
+						$Element(this.element).removeClass("pop");
+						$Element(this.element_selected).removeClass("bold");
+
+						setTimeout($Fn(function() {
+						this.element.scrollTop = this.lastScrollTop;
+						this.timeout = setTimeout($Fn(this.start, this).bind(), 1000);
+						}, this).bind(), 30);
+					}
+				}
+			});
+
+			var rolling = new Rolling("list");
+			var rolling2 = new Rolling("list2");
+
+			rolling.start();
+			rolling2.start();
+
+		</script>
+	</body>
+</html>

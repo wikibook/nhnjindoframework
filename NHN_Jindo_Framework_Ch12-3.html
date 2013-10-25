@@ -1,0 +1,136 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html>
+	<head>
+		<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+		<title>12. 드래그 앤드 드롭 - 드래그 요소에 효과 주기</title>
+		<script type="text/javascript" src="jindo.all.js"></script>
+		<style type="text/css">
+			.drag {
+				border: solid 1px;
+				background-color: #ffffff;
+				width: 60px;
+				height: 60px;
+				-webkit-user-select: none; /* 크롬, 사파리 */
+				-moz-user-select: none;     /* 파이어폭스 */
+			}
+		</style>
+	</head>
+	<body>
+		<!--인터넷 익스플로러, 오페라 -->
+		<div id="drag" class="drag" unselectable="on">
+			drag
+		</div>
+		<script type="text/javascript">
+			// 드래그할 요소
+			var element = $("drag");
+
+			// 요소 내에서의 위치 값 변수
+			var nDiffY = 0, nDiffX = 0;
+
+			$Fn(function(oEvent){
+			var el = oEvent.element, oMouse = oEvent.mouse();
+
+			// 마우스의 어느 쪽 버튼이 눌렸는지 확인한다.
+			// 왼쪽 버튼이 눌린 경우에만 실행한다.
+			if(!oMouse.left) {
+			return;
+			}
+			// 이벤트가 발생한 곳의 위치
+			var oDownPosition = oEvent.pos();
+
+			// 드래그될 요소의 위치
+			var oOffset = $Element(el).offset();
+
+			// 이벤트 발생위치 값에서 드래그 요소의 위치 값을 각각 제하고
+			// 요소 내에서 버튼이 눌린 곳의 위치 값을 기억한다.
+			nDiffY = oDownPosition.pageY - oOffset.top;
+			nDiffX = oDownPosition.pageX - oOffset.left;
+
+			// onmousemove  이벤트 핸들러를 설정한다.
+			setMouseEvent(true);
+			}).attach(element, "mousedown");
+
+			// onmousemove 이벤트 핸들러
+			var oEventMouseMove;
+
+			// onmouseup 이벤트 핸들러
+			var oEventMouseUp;
+
+			// onmousemove 이벤트 핸들러 등록/해제 함수
+			function setMouseEvent(bAttach) {
+				// onmousemove 이벤트 핸들러와 onmouseup 이벤트 핸들러를 등록한다.
+				if(bAttach) {
+					oEventMouseMove = $Fn(mouseMove).attach(document, "mousemove");
+					oEventMouseUp = $Fn(mouseUp).attach(document, "mouseup");
+
+					// onmousemove 이벤트 핸들러와 onmouseup 이벤트 핸들러를 해제한다.
+				} else {
+					oEventMouseMove.detach(document, "mousemove");
+					oEventMouseUp.detach(document, "mouseup");
+				}
+			}
+
+			// 현재 드래그 여부를 판별할 목적으로 사용
+			var bDragging = false;
+
+			// 복제된 드래그 요소
+			var welementClone;
+
+			function mouseMove(oEvent) {
+				// 이벤트가 발생한 곳의 위치를 구한다.
+				var oPosition = oEvent.pos();
+
+				// onmousemove 이벤트 핸들러가 처음 실행됐다면, 드래그 요소의 배치 속성을 절댓값으로 지정하고,
+				// 드래그가 이제 시작됐으므로 드래그 여부를 나타내는 변수 값을 true로 설정한다.
+				if(!bDragging) {
+					// 복제된 요소가 없다면, 복제 요소를 생성하고, DOM에 추가한다.
+					if(!welementClone) {
+						welementClone = $Element("<div id='_tmpDrag' class='drag'>");
+						document.body.appendChild(welementClone.$value());
+						welementClone.html(element.innerHTML);
+
+						// 반투명 스타일을 적용한다.
+						welementClone.opacity(0.4);
+
+						// 이미 복제된 요소가 DOM에 존재한다면 바로 사용한다.
+					} else {
+						welementClone = $Element("_tmpDrag");
+						welementClone.show();
+					}
+
+					welementClone.css("position", "absolute");
+					bDragging = true;
+
+				}
+
+				// 이벤트가 발생한 곳의 좌표값(X/Y)을 통해 해당 요소의 X(left), Y(top) 좌표값을 변경한다.
+				welementClone.css({
+					top : (oPosition.pageY - nDiffY) + "px",
+					left : (oPosition.pageX - nDiffX) + "px"
+				});
+
+			}
+
+			function mouseUp(oEvent) {
+				// 드래그가 끝났으므로 드래그 여부를 다시 false로 설정한다.
+				bDragging = false;
+
+				// 등록된 이벤트를 해제한다.
+				setMouseEvent(false);
+
+				// 원 요소의 위치 값을 이동한 복제 요소의 위치 값으로 변경한다.
+				if(welementClone) {
+					$Element(element).css({
+						position : "absolute",
+						top : welementClone.css("top"),
+						left : welementClone.css("left")
+					});
+
+					// 복제 요소를 숨김 처리한다.
+					welementClone.hide();
+				}
+
+			}
+		</script>
+	</body>
+</html>

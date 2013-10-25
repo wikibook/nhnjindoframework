@@ -1,0 +1,63 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html>
+	<head>
+		<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+		<title>13. 타이머 - 이벤트 지연시키기</title>
+		<script type="text/javascript" src="jindo.all.js"></script>
+	</head>
+	<body>
+		<script type="text/javascript">
+			var DelayMouseOverEvent = $Class({
+				$init : function(el, fCallback, nSec) {
+
+					// 초기화 인자로 받은 변수를 저장한다.
+					this._nSec = nSec;
+					this._fCallback = fCallback;
+					this._nTimer = null;
+					this._bCheck = false;
+
+					// 콜백 함수의 this 참조 문제를 회피하기 위해 미리 설정해 둔다.
+					this._wfTimer = $Fn(this._onTimer, this);
+
+					// 마우스 이벤트를 바인딩한다.
+					$Fn(this._onMouseOver, this).attach(el, "mouseenter");
+					$Fn(this._onMouseOut, this).attach(el, "mouseleave");
+				},
+				// 지정한 시간 안에 타이머가 취소되지 않으면 타이머의 콜백 함수를 실행한다.
+				_onMouseOver : function(we) {
+					this._bCheck = true;
+					this._nTimer = setTimeout(this._wfTimer.bind(), this._nSec);
+				},
+				// 마우스가 포인터가 벗어나면 타이머를 취소한다.
+				_onMouseOut : function(we) {
+					this._bCheck = false;
+					if(this._nTimer) {
+						clearTimeout(this._nTimer);
+						this._nTimer = null;
+					}
+				},
+				// 일정시간 이후에도 체크 변수가 있다면 지정한 콜백 함수를 실행한다.
+				_onTimer : function() {
+					if(this._bCheck) {
+						this._fCallback.apply(this);
+					}
+				}
+			});
+
+			// 필요한 HTML 생성
+			var el = $("<div>여기를 마우스 포인터를 올려 보세요.</div>");
+			var elLayer = $("<div>1초 뒤에 이 텍스트가 보입니다.</div>");
+			elLayer.id = "test_layer";
+			elLayer.style.display = "none";
+			document.body.appendChild(el);
+			document.body.appendChild(elLayer);
+
+			// 콜백 함수 정의
+			var openLayer = function() {
+				$Element("test_layer").show();
+			}
+			// 적용 요소, 콜백 함수, 시간(초)을 인자로 받는다.
+			new DelayMouseOverEvent(el, openLayer, 1000);
+		</script>
+	</body>
+</html>

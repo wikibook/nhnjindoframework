@@ -1,0 +1,131 @@
+﻿<!doctype html>
+<html>
+	<head>
+		<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+		<title>15. AJAX 고급 응용 - iFrame을 이용해 AJAX 히스토리 구현하기</title>
+		<script type="text/javascript" src="jindo.all.js "></script>
+	</head>
+	<body>
+		<div id="message">
+			선택한 라디오 버튼에 따라 텍스트가 바뀝니다.
+		</div>
+		<div id="action">
+			<input type="radio" name="chk_info" value="HTML" id="radio_1">
+			<label for="radio_1">HTML</label>
+			<input type="radio" name="chk_info" value="CSS" id="radio_2">
+			<label for="radio_2">CSS</label>
+			<input type="radio" name="chk_info" value="Javascript" id="radio_3">
+			<label for="radio_3">Javascript</label>
+		</div>
+		<script type="text/javascript">
+			var IFrameAjaxHistory = new $Class({
+				$init : function(option) {
+					this._fCallback = option.onhashchange;
+					this._oAgent = $Agent().navigator();
+					this._sCheckType = "hashchange";
+
+					// IE7 이하 버전
+					if(this._oAgent.ie && this._oAgent.version < 8) {
+						this._welIFrame = $Element("<IFRAME>");
+						this._welIFrame.hide();
+						this._welIFrame.appendTo(document.body);
+						this._sCheckType = "iframe";
+						setInterval($Fn(this._checkLocationChange, this)
+						.bind(), 100);
+
+						// 그외 hashchange 를 지원하는 브라우저
+					} else {
+						$Fn(this._onHashChanged, this).attach(window, "hashchange");
+					}
+					this._sOriginHash = this._getLocationHash();
+					if(this._sOriginHash) {
+						this._resotre(this._sOriginHash);
+					}
+				},
+				_getLocationHash : function() {
+					return this._oAgent.firefox ? encodeURIComponent(location.hash
+					.substring(1)) : location.hash.substring(1);
+				},
+				addHistory : function(o) {
+					var sQuery = $Json(o).toString();
+
+					// 서비스 페이지에는 해시값을 삽입한다.
+					location.hash = encodeURIComponent(sQuery);
+					if(this._sCheckType == "iframe") {
+
+						// 미리 작성한 history.html의 위치를 지정한다.
+						var url = "http://" + location.host + "/history.html?hash=" + encodeURIComponent(sQuery);
+
+						// iFrame 에는 해시값이 아닌 URL을 삽입한다.
+						this._welIFrame.$value().src = url;
+					}
+				},
+				// 주기적으로 해시 값을 검사해 복원을 진행한다.
+				_checkLocationChange : function() {
+					var sCurrentHash = this._getLocationHash();
+					if(sCurrentHash != this._sOriginHash) {
+						this._resotre(sCurrentHash);
+						this._sOriginHash = sCurrentHash;
+					}
+				},
+				_onHashChanged : function(oEvent) {
+					var sHashData = this._getLocationHash();
+					if(sHashData) {
+						this._resotre(sHashData);
+					}
+				},
+				_resotre : function(sHashData) {
+					var sDecodeData = decodeURIComponent(sHashData);
+					var oData = $Json(sDecodeData).$value();
+					this._fCallback.call(null, oData);
+				},
+				// iFrame이 변경되면 서비스 페이지에 해시 값을 삽입한다.
+				$static : {
+					checkIFrameChange : function(oLoation) {
+						var url = oLoation.href;
+						var sHash = url.split("hash=")[1];
+						location.hash = sHash;
+					}
+				}
+			});
+
+			// 테스트 객체 정의
+			var TestAjaxHistory = {
+				init : function() {
+					this._sCurrentSelect = "";
+					this._elMessage = $("message");
+
+					// Ajax 히스토리 객체를 생성한다.
+					this._AjaxHistory = new IFrameAjaxHistory({
+						onhashchange : $Fn(this.onHashChange, this).bind()
+					});
+					//
+					$Element("action").delegate("click", "input[type='radio']", $Fn(this.onClickRadioButton, this).bind());
+				},
+				// 뒤로가기 버튼 클릭후, 해시값이 변경되면 데이터를 복원한다.
+				onHashChange : function(oData) {
+					this._elMessage.innerHTML = oData.value;
+					$(oData.id).checked = true;
+				},
+				onClickRadioButton : function(oEvent) {
+					var el = oEvent.element;
+					var sValue = el.value;
+					var sId = el.id;
+
+					if(this._sCurrentSelect != sValue) {
+						this._sCurrentSelect = sValue;
+						this._elMessage.innerHTML = sValue;
+						this._AjaxHistory.addHistory({
+							value : sValue,
+							id : sId
+						});
+					}
+				}
+			}
+
+			// 테스트 객체를 실행한다.
+			TestAjaxHistory.init();
+
+		</script>
+	</body>
+</html>

@@ -1,0 +1,73 @@
+﻿<!doctype html>
+<html>
+	<head>
+		<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+		<title>15. AJAX 고급 응용 - HTML5를 이용해 AJAX 히스토리 구현하기</title>
+		<script type="text/javascript" src="jindo.all.js "></script>
+	</head>
+	<body>
+		<div id="message">
+			선택한 라디오 버튼에 따라 텍스트가 바뀝니다.
+		</div>
+		<div id="action">
+			<input type="radio" name="chk_info" value="HTML" id="radio_1">
+			<label for="radio_1">HTML</label>
+			<input type="radio" name="chk_info" value="CSS" id="radio_2">
+			<label for="radio_2">CSS</label>
+			<input type="radio" name="chk_info" value="Javascript" id="radio_3">
+			<label for="radio_3">Javascript</label>
+		</div>
+		<script type="text/javascript">
+			var SimpleHTML5History = new $Class({
+				$init : function(option) {
+					this._fCallback = option.onhashchange;
+					window.onpopstate = $Fn(this._onPopupState, this).bind();
+				},
+				addHistory : function(o) {
+					history.pushState(o, "popupstate")
+				},
+				_onPopupState : function(oEvent) {
+					this._fCallback.call(null, oEvent.state);
+				}
+			});
+
+			// 테스트 객체 정의
+			var TestAjaxHistory = {
+				init : function() {
+					this._sCurrentSelect = "";
+					this._elMessage = $("message");
+
+					this._AjaxHistory = new SimpleHTML5History({
+						onhashchange : $Fn(this.onHashChange, this).bind()
+					});
+
+					$Element("action").delegate("click", "input[type='radio']", $Fn(this.onClickRadioButton, this).bind());
+				},
+				onHashChange : function(oData) {
+					this._restore(oData);
+				},
+				onClickRadioButton : function(oEvent) {
+					var el = oEvent.element;
+					var sValue = el.value;
+					var sId = el.id;
+
+					if(this._sCurrentSelect != sValue) {
+						this._sCurrentSelect = sValue;
+						this._elMessage.innerHTML = sValue;
+						this._AjaxHistory.addHistory({
+							value : sValue,
+							id : sId
+						});
+					}
+				},
+				_restore : function(oData) {
+					this._elMessage.innerHTML = oData.value;
+					$(oData.id).checked = true;
+				}
+			}
+
+			TestAjaxHistory.init();
+
+		</script>
+	</body>
+</html>

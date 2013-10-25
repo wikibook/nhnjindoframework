@@ -1,0 +1,97 @@
+﻿<!doctype html>
+<html>
+	<head>
+		<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+		<title>15. AJAX 고급 응용 - 간단한 AJAX 히스토리 구현하기</title>
+		<script type="text/javascript" src="jindo.all.js "></script>
+	</head>
+	<body>
+		<div id="message">
+			선택한 라디오 버튼에 따라 텍스트가 바뀝니다.
+		</div>
+		<div id="action">
+			<input type="radio" name="chk_info" value="HTML" id="radio_1">
+			<label for="radio_1">HTML</label>
+			<input type="radio" name="chk_info" value="CSS" id="radio_2">
+			<label for="radio_2">CSS</label>
+			<input type="radio" name="chk_info" value="Javascript" id="radio_3">
+			<label for="radio_3">Javascript</label>
+		</div>
+		<script type="text/javascript">
+			// 앞에서 작성한 AjaxHistory 객체
+			var SimpleAjaxHistory = new $Class({
+				$init : function(option) {
+					this._fCallback = option.onhashchange;
+					this._oAgent = $Agent().navigator();
+
+					// hashchage 이벤트 등록
+					$Fn(this._onHashChanged, this).attach(window, "hashchange");
+
+					// 초기 URL에 복원 해시가 있으면 복원
+					var sHashData = this._getLocationHash();
+					if(sHashData) { this._restore(sHashData);
+					}
+				},
+				// 브라우저 히스토리에 강제로 데이터를 쌓는다.
+				addHistory : function(o) {
+					var sQuery = $Json(o).toString();
+					location.hash = encodeURIComponent(sQuery);
+				},
+				// 뒤로가기 버튼이 클릭되면 발생되는 이벤트 핸들러
+				_onHashChanged : function(oEvent) {
+					var sHashData = this._getLocationHash();
+					if(sHashData) { this._restore(sHashData);
+					}
+				},
+				// 해시를 반환한다.
+				_getLocationHash : function() {
+					return this._oAgent.firefox ? encodeURIComponent(location.hash.substring(1)) : location.hash.substring(1);
+				},
+				// 해시값을 이용해 이전 상태로 복원한다.
+				_restore : function(sHashData) {
+					var sDecodeData = decodeURIComponent(sHashData);
+					var oData = $Json(sDecodeData).$value();
+					this._fCallback.call(null, oData);
+				}
+			});
+
+			// 테스트 객체 정의
+			var TestAjaxHistory = {
+				init : function() {
+					this._sCurrentSelect = "";
+					this._elMessage = $("message");
+
+					// Ajax 히스토리 객체를 생성한다.
+					this._AjaxHistory = new SimpleAjaxHistory({
+						onhashchange : $Fn(this.onHashChange, this).bind()
+					});
+
+					//
+					$Element("action").delegate("click", "input[type='radio']", $Fn(this.onClickRadioButton, this).bind());
+				},
+				// 뒤로가기 버튼을 클릭한 후 해시값이 변경되면 데이터를 복원한다.
+				onHashChange : function(oData) {
+					this._elMessage.innerHTML = oData.value;
+					$(oData.id).checked = true;
+				},
+				onClickRadioButton : function(oEvent) {
+					var el = oEvent.element;
+					var sValue = el.value;
+					var sId = el.id;
+
+					if(this._sCurrentSelect != sValue) {
+						this._sCurrentSelect = sValue;
+						this._elMessage.innerHTML = sValue;
+						this._AjaxHistory.addHistory({
+							value : sValue,
+							id : sId
+						});
+					}
+				}
+			}
+
+			// 테스트 객체를 실행한다.
+			TestAjaxHistory.init();
+		</script>
+	</body>
+</html>

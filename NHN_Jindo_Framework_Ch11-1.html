@@ -1,0 +1,44 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html>
+	<head>
+		<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+		<title>11. 레이어 다루기 - 화면 중앙에 레이어 나타내기</title>
+		<script type="text/javascript" src="jindo.all.js"></script>		
+	</head>
+	<body>
+		<div id="layer" style="width: 200px; height: 100px; background-color: blue;"></div>		
+		<script type="text/javascript">
+			function moveToCenter(sLayerId) {
+				var wel = $Element(sLayerId);
+
+				// $Document 객체를 이용해 실제적으로 보이는 화면 영역의 크기를 구한다.
+				var oSize = $Document().clientSize();
+
+				// 공식에 필요한 값을 미리 구해 놓는다.
+				var cx = oSize.width;
+				var cy = oSize.height;
+				var lx = wel.width();
+				var ly = wel.height();
+
+				// 공식에 따라 레이어 중심의 왼쪽 위의 값 구하기
+				var dx = cx / 2 - lx / 2;
+				var dy = cy / 2 - ly / 2;
+
+				// 레이어의 위치 이동하기
+				wel.css({
+					"position" : "absolute",
+					"left" : dx,
+					"top" : dy
+				});
+			}
+
+			// 레이어를 화면 중심으로 이동한다..
+			moveToCenter("layer");
+
+			$Fn(function(){
+			moveToCenter("layer");
+			}).attach(window, "resize");
+
+		</script>
+	</body>
+</html>

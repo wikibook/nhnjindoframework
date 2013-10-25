@@ -1,0 +1,210 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html>
+	<head>
+		<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+		<title>12. 드래그 앤드 드롭 - 인터넷 익스플로러 문제 해결</title>
+		<script type="text/javascript" src="jindo.all.js"></script>
+		<style type="text/css">
+			.drag {
+				border: solid 1px;
+				background-color: #ffffff;
+				width: 60px;
+				height: 60px;
+				-webkit-user-select: none;
+				-moz-user-select: none;
+				z-index: 1;
+			}
+			.drop {
+				border: solid 1px red;
+				width: 120px;
+				height: 120px;
+				background-color: #ffffff;
+				position: absolute;
+				top: 50px;
+				left: 400px;
+				-webkit-user-select: none;
+				-moz-user-select: none;
+			}
+		</style>
+	</head>
+	<body>
+		<div id="drag" class="drag" unselectable="on">
+			drag
+		</div>
+		<div id="drop" class="drop" unselectable="on">
+			drop
+		</div>
+		<script type="text/javascript">
+			var DragDrop = $Class({
+				$init : function(sDragId, sDropId) {
+					// 드래그 요소
+					this.elDrag = $(sDragId);
+
+					// 드롭될 영역의 요소
+					this.welDrop = $Element(sDropId);
+
+					// 요소 내에서의 위치 값 객체
+					this.diff = {
+						X : 0,
+						Y : 0
+					};
+
+					// 이벤트 핸들러
+					this.oEvent = {};
+
+					// 현재 드래그 여부를 판별하는 데 사용
+					this.bDragging = false;
+
+					// 복제된 드래그 요소
+					this.welementClone;
+
+					// 드롭 여부를 판별
+					this.bDropped = false;
+
+					// 드롭 영역의 위치 좌표값을 갖는 객체
+					this.dropArea = {};
+
+					// 브라우저가 인터넷 익스플로러인지 여부
+					this.bIE = $Agent().navigator().ie;
+
+					this._setDropDimension();
+					this._attachEvent();
+				},
+				// 드롭 영역의 위치 좌표값을 구한다.
+				_setDropDimension : function() {
+					var oOffset = this.welDrop.offset();
+
+					this.dropArea = {
+						top : oOffset.top,
+						left : oOffset.left
+					};
+					this.dropArea.bottom = this.dropArea.top + this.welDrop.height();
+					this.dropArea.right = this.dropArea.left + this.welDrop.width();
+				},
+				// onmousedown 이벤트를 등록한다.
+				_attachEvent : function() {
+					$Fn(function(oEvent) {
+					var el = oEvent.element, oMouse = oEvent.mouse();
+
+					// 마우스의 어느 쪽 버튼이 눌렸는지 확인한다.
+					// 왼쪽 버튼 클릭인 경우에만 실행하도록 동작하도록 한다.
+					if(!oMouse.left) {
+					return;
+					}
+
+					// 이벤트가 발생한 곳의 위치
+					var oDownPosition = oEvent.pos();
+
+					// 드래그될 요소의 위치
+					var oOffset = $Element(el).offset();
+
+					// 이벤트 발생위치 값에서 드래그 요소의 위치 값을 각각 제하고
+					// 요소 내에서 버튼이 눌린 곳의 위치 값을 기억한다.
+					this.diff.Y = oDownPosition.pageY - oOffset.top;
+					this.diff.X = oDownPosition.pageX - oOffset.left;
+
+					// mousemove  이벤트 핸들러를 설정한다.
+					this._setMouseEvent(true);
+					}, this).attach(this.elDrag, "mousedown");
+				},
+				// onmousemove/onmouseup 이벤트 핸들러 등록 및 해제
+				_setMouseEvent : function(bAttach) {
+					// 이벤트를 등록한다.
+					if(bAttach) {
+						// 인터넷 익스플로러에서 마우스 이벤트를 캡처하도록 설정한다.
+						if(this.bIE) {
+							document.body.setCapture();
+						}
+
+						this.oEvent.mouseMove = $Fn(this._mouseMove, this).attach(document, "mousemove");
+						this.oEvent.mouseUp = $Fn(this._mouseUp, this).attach(document, "mouseup");
+
+						// 등록된 이벤트를 해제한다.
+					} else {
+						// 인터넷 익스플로러에서 마우스 이벤트를 캡처를 해제한다.
+						if(this.bIE) {
+							document.body.releaseCapture();
+						}
+
+						this.oEvent.mouseMove.detach(document, "mousemove");
+						this.oEvent.mouseUp.detach(document, "mouseup");
+					}
+				},
+				// onmousemove 이벤트 핸들러
+				_mouseMove : function(oEvent) {
+					// 이벤트가 발생한 곳의 위치를 구한다.
+					var oPosition = oEvent.pos();
+
+					// mousemove 핸들러가 처음 실행됐다면, 드래그 요소의 배치 속성을 절댓값으로 지정한다.
+					// 드래그가 이제 시작됐으므로 드래그 여부를 true로 설정한다.
+					if(!this.bDragging) {
+						// 복제된 요소가 없다면, 복제 요소를 생성하고, DOM에 추가한다.
+						if(!this.welementClone) {
+							this.welementClone = $Element("<div id='_tmpDrag' class='drag'>");
+							document.body.appendChild(this.welementClone.$value());
+							this.welementClone.html(this.elDrag.innerHTML);
+
+							// 반투명 스타일을 적용한다.
+							this.welementClone.opacity(0.4);
+
+							// 이미 복제된 요소가 DOM에 존재한다면 바로 사용한다.
+						} else {
+							this.welementClone = $Element("_tmpDrag");
+							this.welementClone.show();
+						}
+
+						this.welementClone.css("position", "absolute");
+						this.bDragging = true;
+					}
+
+					// 이벤트가 발생한 곳의 좌표값(X,Y)을 통해 드래그 요소의 X, Y 좌표값을 변경한다.
+					this.welementClone.css({
+						top : (oPosition.pageY - this.diff.Y) + "px",
+						left : (oPosition.pageX - this.diff.X) + "px"
+					});
+
+					// 마우스 포인터가 드롭 영역안에 있다면, 드롭 영역 요소의 백그라운드 색을 빨간색으로 변경하고,
+					// 드롭 여부 변수의 값을 true로 설정한다.
+					if(oPosition.pageY > this.dropArea.top && oPosition.pageY < this.dropArea.bottom && oPosition.pageX > this.dropArea.left && oPosition.pageX < this.dropArea.right) {
+						this.welDrop.css("backgroundColor", "red");
+						this.bDropped = true;
+
+						// 드롭 영역안이 아니라면 드롭 영역 요소의 백그라운드 색을 다시 흰색으로 변경하고,
+						// 드롭 여부 변수의 값을 false로 설정한다.
+					} else {
+						this.welDrop.css("backgroundColor", "white");
+						this.bDropped = false;
+					}
+				},
+				// onmouseup 이벤트 핸들러
+				_mouseUp : function(oEvent) {
+					// 드래그가 끝났으므로 드래그 여부를 다시 false로 설정한다.
+					this.bDragging = false;
+
+					// 등록된 이벤트를 해제한다.
+					this._setMouseEvent(false);
+
+					// 원 요소의 위치 값을 이동된 복제 요소의 위치 값으로 변경한다.
+					if(this.welementClone) {
+						$Element(this.elDrag).css({
+							position : "absolute",
+							top : this.welementClone.css("top"),
+							left : this.welementClone.css("left")
+						});
+
+						// 복제 요소를 숨김 처리한다.
+						this.welementClone.hide();
+					}
+
+					if(this.bDropped) {
+						alert("드롭됨!");
+					}
+				}
+			});
+
+			// 드래그 요소의 id와 드롭 요소의 id를 각각 파라미터로 전달한다.
+			var dragdrop = new DragDrop("drag", "drop");
+
+		</script>
+	</body>
+</html>

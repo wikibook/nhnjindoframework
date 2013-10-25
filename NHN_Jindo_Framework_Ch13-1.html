@@ -1,0 +1,43 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html>
+	<head>
+		<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+		<title>13. 타이머 - 실시간으로 글자수 세기</title>
+		<script type="text/javascript" src="jindo.all.js"></script>
+	</head>
+	<body>
+		<script type="text/javascript">
+			// 필요한 HTML 생성
+			var elText = $("<textarea>");
+			var elSpan = $("<span>0<span>");
+			document.body.appendChild(elText);
+			document.body.appendChild(elSpan);
+
+			// 컴포넌트 정의 및 구현
+			var TextCounter = $Class({
+				$init : function(elSpan, elText) {
+					this._nTimer = 0;
+					this._wfInterval = $Fn(this._onTextCheck, this);
+					this._welSpan = $Element(elSpan);
+					this._elText = elText;
+
+					$Fn(this._onFocus, this).attach(elText, "focus");
+					$Fn(this._onBlur, this).attach(elText, "blur");
+				},
+				_onFocus : function(we) {
+					this._nTimer = setInterval(this._wfInterval.bind(), 100);
+				},
+				_onBlur : function(we) {
+					clearInterval(this._nTimer);
+				},
+				_onTextCheck : function() {
+					this._welSpan.text(this._elText.value.length);
+				}
+			});
+
+			// 적용 요소와 카운터를 표시 할 요소를 인자로 받는다.
+			new TextCounter(elSpan, elText);
+
+		</script>
+	</body>
+</html>

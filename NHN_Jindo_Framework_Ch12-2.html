@@ -1,0 +1,162 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html>
+	<head>
+		<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+		<title>12. 드래그 앤드 드롭 - 드래그 영역 제한하기</title>
+		<script type="text/javascript" src="jindo.all.js"></script>
+		<style type="text/css">
+			.drag {
+				border: solid 1px;
+				background-color: #ffffff;
+				width: 60px;
+				height: 60px;
+				-webkit-user-select: none; /* 크롬, 사파리 */
+				-moz-user-select: none;     /* 파이어폭스 */
+			}
+			.drag_area {
+				margin: 30px 0px 0px 30px;
+				width: 200px;
+				height: 200px;
+				border: solid 1px blue;
+			}
+		</style>
+	</head>
+	<body>
+		<div id="drag_area" class="drag_area">
+			<!--인터넷 익스플로러, 오페라 -->
+			<div id="drag" class="drag" unselectable="on">
+				drag
+			</div>
+		</div>
+		<script type="text/javascript">
+			// 드래그할 요소
+			var element = $("drag");
+
+			// 요소 내에서의 위치 값 변수
+			var nDiffY = 0, nDiffX = 0;
+
+			$Fn(function(oEvent){
+			var el = oEvent.element, oMouse = oEvent.mouse();
+
+			// 마우스의 어느 쪽 버튼이 눌렸는지 확인한다.
+			// 왼쪽 버튼이 눌린 경우에만 실행한다.
+			if(!oMouse.left) {
+			return;
+			}
+			// 이벤트가 발생한 곳의 위치
+			var oDownPosition = oEvent.pos();
+
+			// 드래그될 요소의 위치
+			var oOffset = $Element(el).offset();
+
+			// 이벤트 발생위치 값에서 드래그 요소의 위치 값을 각각 제하고
+			// 요소 내에서 버튼이 눌린 곳의 위치 값을 기억한다.
+			nDiffY = oDownPosition.pageY - oOffset.top;
+			nDiffX = oDownPosition.pageX - oOffset.left;
+
+			// onmousemove  이벤트 핸들러를 설정한다.
+			setMouseEvent(true);
+			}).attach(element, "mousedown");
+
+			// onmousemove 이벤트 핸들러
+			var oEventMouseMove;
+
+			// onmouseup 이벤트 핸들러
+			var oEventMouseUp;
+
+			// onmousemove 이벤트 핸들러 등록/해제 함수
+			function setMouseEvent(bAttach) {
+				// onmousemove 이벤트 핸들러와 onmouseup 이벤트 핸들러를 등록한다.
+				if(bAttach) {
+					oEventMouseMove = $Fn(mouseMove).attach(document, "mousemove");
+					oEventMouseUp = $Fn(mouseUp).attach(document, "mouseup");
+
+					// onmousemove 이벤트 핸들러와 onmouseup 이벤트 핸들러를 해제한다.
+				} else {
+					oEventMouseMove.detach(document, "mousemove");
+					oEventMouseUp.detach(document, "mouseup");
+				}
+			}
+
+			// 현재 드래그 여부를 판별할 목적으로 사용
+			var bDragging = false;
+
+			// 드래그 제한 영역의 위치와 크기를 구한다.
+			var nAreaTop = $Element("drag_area").offset().top;
+			// 위쪽: 30px
+
+			var nAreaLeft = $Element("drag_area").offset().left;
+			// 왼쪽: 30px
+
+			var nAreaBottom = nAreaTop + $Element("drag_area").height();
+			// 아래쪽: 230px
+
+			var nAreaRight = nAreaLeft + $Element("drag_area").width();
+			// 오른쪽: 230px
+
+			function mouseMove(oEvent) {
+				// 이벤트가 발생한 곳의 위치를 구한다.
+				var oPosition = oEvent.pos();
+
+				// onmousemove 이벤트 핸들러가 처음 실행됐다면, 드래그 요소의 배치 속성을 절댓값으로 지정하고,
+				// 드래그가 이제 시작됐으므로 드래그 여부를 나타내는 변수 값을 true로 설정한다.
+				if(!bDragging) {
+					$Element(element).css("position", "absolute");
+					bDragging = true;
+				}
+
+				// 드래그 요소의 위치 값을 구한다.
+				var nTop = oPosition.pageY - nDiffY;
+				var nLeft = oPosition.pageX - nDiffX;
+				var nBottom = nTop + $Element(element).height();
+				var nRight = nLeft + $Element(element).width();
+
+				// 영역의 위쪽과 아래쪽 영역 안이라면 요소의 위치를 변경한다.
+				if(nTop > nAreaTop && nBottom < nAreaBottom) {
+					$Element(element).css({
+						top : nTop + "px"
+					});
+
+					// 영역 안이 아니고 위쪽 경계 영역보다 크다면, 아래쪽 경계에 위치하게 한다.
+				} else if(nTop > nAreaTop) {
+					$Element(element).css({
+						top : nAreaBottom -   $Element(element).height() + "px"
+					});
+
+					// 영역 안이 아니고 위쪽 경계 영역보다 작다면, 위쪽 경계에 위치하게 한다.
+				} else {
+					$Element(element).css({
+						top : nAreaTop + "px"
+					});
+				}
+
+				// 왼쪽과 오른쪽 영역 안이라면 요소의 위치를 변경한다.
+				if(nLeft > nAreaLeft && nRight < nAreaRight) {
+					$Element(element).css({
+						left : nLeft + "px"
+					});
+
+					// 영역 안이 아니고 왼쪽 경계 영역보다 크다면, 오른쪽 경계에 위치하게 한다.
+				} else if(nLeft > nAreaLeft) {
+					$Element(element).css({
+						left : nAreaRight -   $Element(element).width() + "px"
+					});
+
+					// 영역 안이 아니고 왼쪽 경계 영역보다 작다면, 왼쪽 경계에 위치하게 한다.
+				} else {
+					$Element(element).css({
+						left : nAreaLeft + "px"
+					});
+				}
+			}
+
+			function mouseUp(oEvent) {
+				// 드래그가 끝났으므로 드래그 여부를 다시 false로 설정한다.
+				bDragging = false;
+
+				// 등록된 이벤트를 해제한다.
+				setMouseEvent(false);
+			}
+		</script>
+	</body>
+</html>

@@ -1,0 +1,86 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html>
+	<head>
+		<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+		<title>13. 타이머 - 자동으로 콘텐츠 교체하기</title>
+		<script type="text/javascript" src="jindo.all.js"></script>
+	</head>
+	<body>
+		<script type="text/javascript">
+			var AutoChangeText = $Class({
+				$init : function(el, aData, nSec) {
+
+					// 외부로부터 인자로 받은 값을 저장해둔다.
+					this._wel = $Element(el);
+					this._aData = aData;
+
+					// 기본 동작은 멈춰진 상태로 설정한다.
+					this._sTimerState = "STOP";
+
+					// 교체하는 데이터는 0번 배열부터 시작한다.
+					this._nDataSeq = 0;
+
+					// 주기적인 타이머를 설정한다.
+					this._nTimer = setInterval($Fn(this._onTime, this).bind(), nSec * 1000);
+
+					// 마우스 이벤트를 등록한다.
+					$Fn(this._onMouseOver, this).attach(el, "mouseenter");
+					$Fn(this._onMouseOut, this).attach(el, "mouseleave");
+
+					// 초기화가 끝나면 바로 타이머를 동작시킨다.
+					this.start();
+				},
+				start : function() {
+					this._sTimerState = "PLAY";
+				},
+				pause : function() {
+					this._sTimerState = "STOP";
+				},
+				resume : function() {
+					this._sTimerState = "PLAY";
+				},
+				// 타이머는 매번 동작하지만 상태가 PLAY일 때 만 텍스트를 바꾼다.
+				_onTime : function() {
+					if(this._sTimerState == "PLAY") {
+						this._changeText();
+					}
+				},
+				_onMouseOver : function(we) {
+					this.pause();
+				},
+				_onMouseOut : function(we) {
+					this.resume();
+				},
+				// 배열에 담은 메시지를 차례로 표시한다.
+				_changeText : function() {
+					this._wel.text(this._aData[this._nDataSeq]);
+					this._nDataSeq++;
+					if(this._nDataSeq >= this._aData.length) {
+						this._nDataSeq = 0;
+					}
+				}
+			});
+
+			// 필요한 HTML 생성
+			var el = $("<div>");
+			document.body.appendChild(el);
+
+			var aData = [
+			"나 보기가 역겨워", 
+			"가실 때에는", 
+			"말없이 고이 보내 드리오리다.", 
+			"영변에 약산", 
+			"진달래꽃,", 
+			"아름 따다 가실 길에 뿌리오리다.", 
+			"가시는 걸음 걸음", 
+			"놓인 그 꽃을", 
+			"사뿐히 즈려 밟고 가시옵소서.", 
+			"나 보기가 역겨워", 
+			"가실 때에는", 
+			"죽어도 아니 눈물 흘리오리다."];
+
+			// 적용 요소, 데이터, 시간(초)을 파라미터로 받는다.
+			new AutoChangeText(el, aData, 1);
+		</script>
+	</body>
+</html>

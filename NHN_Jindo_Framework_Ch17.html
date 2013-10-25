@@ -1,0 +1,212 @@
+﻿<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html>
+	<head>
+		<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+		<title>17. 도서 관린 웹 애플리케이션 만들기</title>
+		<script type="text/javascript" src="jindo.all.js"></script>
+		<style type="text/css">
+			.state {
+				float: left;
+				padding-right: 10px;
+			}
+			.title {
+				float: left;
+			}
+			.action {
+				float: left;
+				padding-left: 10px;
+			}
+			.action a {
+				text-decoration: none;
+			}
+			.temp {
+				clear: both;
+			}
+			ul {
+				list-style: none;
+			}
+		</style>
+	</head>
+	<body>					
+			<div>
+			<div id="me2book">
+				<div class="not_read"></div>
+				<div class="read"></div>
+				<div class="read_complete"></div>
+			</div>
+			</div>
+			<script id="me2book_list_tpl" type="text/template">
+				<li id="me2book_{=sPostID}">
+				<div class="state">{=sState}</div>
+				<div class="title" title="{=sContent}">
+				<a href="{=sPermalink}">{=sTitle}</a>
+				</div>
+				<div class="action">
+				{if sState == "등록" || sState == "멈춤"}
+				<a href="#" class="_clickStart ({=sPostID})">시작</a>
+				{elseif sState =="진행"}
+				<a href="#" class="_clickComplete ({=sPostID})">완료</a> |
+				<a href="#" class="_clickStop ({=sPostID})">멈춤</a>
+				{elseif sState =="완료"}
+				<a href="#" class="_clickDelete ({=sPostID})">삭제</a> |
+				<a href="{=sPingbackUrl}">후기작성</a>
+				{/if}
+				</div>
+				<div class="temp"></div>
+				</li>
+			</script>
+			<script type="text/javascript" src="../lib/jindo.all.js"></script>
+			<script type="text/javascript">
+				var Me2Book = $Class({
+					$init : function(oData) {
+						this.sPostID = oData.post_id;
+						this.sContent = oData.textBody;
+						this.sTagText = oData.tagText;
+						this.sPermalink = oData.permalink;
+						this.sTitle = this._getTitle(oData.tagText);
+						this.sState = this._getState(oData.tagText);
+						this.sPingbackUrl = 'http://me2day.net/posts/new?new_post[body]=' + encodeURIComponent('"' + this.sTitle + '":' + this.sPermalink) + '&new_post[tags]=' + encodeURIComponent('간단후기(' + this.sTitle + ')');
+					},
+					_getTitle : function(s) {
+						var regx = /도서목록\(([^,]*)(?:,(?:[^,]*))?\)/;
+						var a = regx.exec(s);
+						return a[1];
+					},
+					_getState : function(s) {
+						var regx = /도서목록\((?:[^,]*)(?:,([^,]*))?\)/;
+						var a = regx.exec(s);
+						return a[1] ? $S(a[1]).trim().toString() : "등록";
+					},
+					setState : function(s) {
+						this.sState = s;
+						var image = new Image();
+						this.sTagText = this.sTagText.replace(/도서목록\(.*\)/, "");
+						this.sTagText += [ "도서목록(", this.sTitle, ",", s, ")" ].join("");
+						image.src = [ "http://me2day.net/미투데이아이디/post/", this.sPostID,"/update?tags=", this.sTagText, "&akey=발급받은애플리케이션키" ].join("");
+					}
+				});
+
+				var Librarian = $Class({
+					$init : function() {
+						this._fp = null
+						this._aBook = [];
+						// 모든 책 데이터를 저장하기 위한 배열
+						var sOpenAPI = "http://me2day.net/api/get_posts/미투데이아이디.json?scope=tag[도서목록]&akey=발급받은애플리케이션키";
+						this._oAjax = new $Ajax(sOpenAPI, {
+							type : "jsonp",
+							callbackname : "callback",
+							timeout : 5,
+							onload : $Fn(this._onLoad, this).bind(),
+							ontimeout : function() {
+								alert("타임아웃");
+							}
+						});
+						this._oAjax.request();
+					},
+					bindCallback : function(fp) {
+						this._fp = fp
+					},
+					_onLoad : function(oRes) {
+						// JSON 데이터를 가져온다.
+						var aData = oRes.json();
+
+						// 도서목록 태그 형식에 맞는 데이터만 골라낸다.
+						var waBook = $A(aData).filter(function(v, i, a) { // value, index, array
+							var regx = /도서목록\(.*\)/;
+							return regx.test(v.tagText);
+						});
+						// 책을 등록한다.
+						waBook.forEach(function(v, i, a) { // value, index, array
+							this._aBook.push(new Me2Book(v));
+						}, this);
+						// 업데이트 되었음을 알린다.
+						this._fp.call();
+					},
+					updateBookState : function(sID, sState) {
+						var oBook = this._getBook(sID);
+						if(oBook) {
+							oBook.setState(sState);
+						}
+
+						this._fp.call();
+					},
+					_getBook : function(sID) {
+						for(var i = 0; i < this._aBook.length; ++i) {
+							if(this._aBook[i].sPostID == sID) {
+								return this._aBook[i];
+							}
+						}
+						return null;
+					},
+					getBookListByState : function(aState) {
+						var wa = $A(this._aBook).filter(function(v, i, a) { // value, index, array
+							return v.sState == aState[0] || v.sState == aState[1];
+						});
+						return wa.$value();
+					}
+				});
+
+				var Me2BookController = $Class({
+					$init : function() {
+						this._oModel = new Librarian();
+						this._oModel.bindCallback($Fn(this.notify, this).bind());
+						this._oTpl = $Template("me2book_list_tpl");
+						this._bindEvent();
+					},
+					_bindEvent : function() {
+						var wel = $Element("me2book");
+						wel.delegate("click", "._clickStart", $Fn(this._clickStart, this).bind());
+						wel.delegate("click", "._clickStop", $Fn(this._clickStop, this).bind());
+						wel.delegate("click", "._clickComplete", $Fn(this._clickComplete, this).bind());
+						wel.delegate("click", "._clickDelete", $Fn(this._clickDelete, this).bind());
+					},
+					notify : function() {
+						var aBook = this._oModel.getBookListByState(["등록", "멈춤"]);
+						var el = $$.getSingle("#me2book > div.not_read");
+						el.innerHTML = this._getHTML("읽지 않은 책", aBook);
+						aBook = this._oModel.getBookListByState(["진행"]);
+						el = $$.getSingle("#me2book > div.read");
+						el.innerHTML = this._getHTML("읽고 있는 책", aBook);
+						aBook = this._oModel.getBookListByState(["완료"]);
+						el = $$.getSingle("#me2book > div.read_complete");
+						el.innerHTML = this._getHTML("다 읽은 책", aBook);
+					},
+					_getHTML : function(sTitle, aData) {
+						var aTpl = ["<h4>" + sTitle + "</h4><ul>"];
+
+						for(var i = aData.length - 1; i > -1; --i) {
+							aTpl.push(this._oTpl.process(aData[i]));
+						}
+
+						aTpl.push("</ul>");
+						return aTpl.join("");
+					},
+					_clickStart : function(we) {
+						var sBookID = this._getBookID(we.element.className);
+						this._oModel.updateBookState(sBookID, "진행");
+					},
+					_getBookID : function(s) {
+						var regx = /\((.*)\)/;
+						var match = regx.exec(s);
+						return match[1];
+					},
+					_clickStop : function(oEvent) {
+						var sBookID = this._getBookID(oEvent.element.className);
+						this._oModel.updateBookState(sBookID, "멈춤");
+					},
+					_clickComplete : function(oEvent) {
+						var sBookID = this._getBookID(oEvent.element.className);
+						this._oModel.updateBookState(sBookID, "완료");
+					},
+					_clickDelete : function(oEvent) {
+						var sBookID = this._getBookID(oEvent.element.className);
+						this._oModel.updateBookState(sBookID, "삭제");
+					}
+				});
+
+				// 초기화
+				new Me2BookController();
+
+			</script>
+	</body>
+</html>

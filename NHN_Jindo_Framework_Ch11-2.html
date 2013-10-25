@@ -1,0 +1,121 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html>
+	<head>
+		<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+		<title>11. 레이어 다루기 - 모달 레이어 만들기</title>
+		<script type="text/javascript" src="jindo.all.js"></script>
+	</head>
+	<body>		
+		<!-- 클릭 핸들러를 등록해 모달 레이어를 닫는다. -->
+		<div id="layer" style="width: 200px; height: 100px; background-color: blue;" onclick=" oLayer.close();"></div>
+		<div><button onclick="alert('클릭');" />
+			레이어가 닫히기 전까지 클릭되지 않아요!
+			</div>			
+			<script type="text/javascript">
+				var ModalLayer = function(sLayerId) {
+
+					// $Document() 객체를 이용해 실제로 보이는 화면 영역의 크기를 구한다.
+
+					var oSize = $Document().clientSize();
+
+					var welLayer = $Element(sLayerId);
+
+					var welDimmed = null;
+
+					// 클릭할 수 없는 투명한 dimmed 요소가 없다면 새로 생성한다.
+
+					if(!$("dimmed")) {
+						welDimmed = $Element("<div id='dimmed' style='z-index:50;'>");
+
+						welDimmed.css({
+
+							'position' : 'absolute',
+
+							'width' : '100%',
+
+							'height' : '100%',
+
+							'top' : 0,
+
+							'left' : 0
+
+						});
+
+						welLayer.after(welDimmed);
+
+					} else {
+
+						// 이미 생성한 dimmed 요소가 있다면 재사용한다.
+
+						welDimmed = $Element("dimmed");
+
+					}
+
+					// 레이어가 dimmed 요소보다 위에 있도록 Z-index 속성을 조절한다.
+
+					welLayer.css("zIndex", 100);
+
+					// 앞선 예제에서 작성한 화면 중심으로 이동시키는 함수를 그대로 사용한다.
+
+					var moveToCenter = function() {
+
+						var oSize = $Document().clientSize();
+
+						var cx = oSize.width;
+
+						var cy = oSize.height;
+
+						var lx = welLayer.width();
+
+						var ly = welLayer.height();
+
+						var dx = cx / 2 - lx / 2;
+
+						var dy = cy / 2 - ly / 2;
+
+						welLayer.css({
+
+							"position" : "absolute",
+
+							"left" : dx,
+
+							"top" : dy
+
+						});
+
+					}
+					// ModalLayer 객체의 .open() 메서드
+
+					this.open = function() {
+
+						welLayer.show();
+
+						welDimmed.show();
+
+						moveToCenter();
+
+					}
+					// ModalLayer객체의 .close() 메서드
+
+					this.close = function() {
+
+						welLayer.hide();
+
+						welDimmed.hide();
+
+					}
+					// 브라우저 리사이즈 이벤트
+
+					$Fn(function(){
+
+					moveToCenter();
+
+					}).attach(window, 'resize');
+
+				};
+				var oLayer = new ModalLayer("layer");
+
+				oLayer.open();
+			</script>
+	</body>
+</html>
